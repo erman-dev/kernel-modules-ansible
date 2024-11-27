@@ -1,0 +1,8 @@
+---
+- name: Load kernel modules
+  become: true
+  community.general.modprobe:
+    name: "{{ item.name }}"
+    params: "{{ item.params | default(omit) }}" # Only adds params if they are specified in the config
+    persistent: "present" # Adds entry to /etc/modprobe.d/ so the module is loaded even after a reboot
+  loop: "{{ modules_to_load }}"
