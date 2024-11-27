@@ -1,0 +1,35 @@
+---
+# This role loads one kernel_module specified in "kernel_module"
+
+# This check will look into /boot/($uname -r) and can return three states
+# 1 - it found the "kernel_opt" inside the file and it is =y (builtin and already loaded)
+# 2 - it found the "kernel_opt" inside the file and it is =m (shipped with, but not loaded)
+# 3 - not found, so we need to install it from the off-tree repo
+
+- debug:
+    msg: "{{ ansible_facts }}"
+
+- name: "Detect if the module {{ kernel_module.name }} is present in kernel"
+  vars:
+    kernel_conf_file: "/boot/config-{{ ansible_facts['kernel'] }}"
+  ansible.builtin.shell: |
+    if grep -q '^{{ kernel_module.kernel_opt }}=' {{ kernel_conf_file }}; then
+      grep '^{{ kernel_module.kernel_opt }}=' {{ kernel_conf_file }} | awk -F'=' '{print $2}';
+    else
+      echo 'notfound';
+    fi
+  register: module_detection
+  changed_when: false
+
+- name: Load the kernel module
+  become: true
+  community.general.modprobe:
+    name: "{{ kernel_module.name }}"
+    params: "{{ kernel_module.params | default(omit) }}"
+    persistent: "present"
+  when: module_detection.stdout == "m"
+
+- include_tasks: build_module.yml
+  when: module_detection.stdout == "notfound"
+
+- meta: flush_handlers

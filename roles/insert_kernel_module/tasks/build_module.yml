@@ -1,0 +1,58 @@
+---
+# This task is intended to be looped over with "item" being a kernel module config
+# Example:
+# item:
+#   name: amd_energy
+#   git_repo: https://github.com/amd/amd_energy.git
+
+- name: "Create temporary build directory for build of {{ kernel_module.name }}"
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: build
+  register: temp_workdir
+
+- ansible.builtin.set_fact:
+    module_dir: "{{ temp_workdir.path }}/{{ kernel_module.name }}"
+
+- name: "Clone the module repository for {{ kernel_module.name }}"
+  git:
+    repo: "{{ item.git_repo }}"
+    dest: "{{ module_dir }}"
+
+- name: "Extract PACKAGE_VERSION of {{ kernel_module.name }} using regex"
+  ansible.builtin.shell: |
+    grep '^PACKAGE_VERSION=' {{ module_dir }}/dkms.conf | awk -F'=' '{print $2}';
+  register: package_version_grep
+
+- ansible.builtin.set_fact:
+    package_version: "{{ package_version_grep.stdout | default('1.0') }}"
+
+# RC 0 - ok
+# RC 1 - general error
+# RC 2 - folder not found
+# RC 3 - module already added
+- name: "Add {{ kernel_module.name }} module to DKMS tree"
+  become: True
+  command: "dkms add {{ module_dir }}"
+  failed_when: dkms_add.rc not in [0,3]
+  changed_when: dkms_add.rc == 0
+  register: dkms_add
+  notify: Load kernel module after build
+
+- name: "Build {{ kernel_module.name }} module using DKMS"
+  become: True
+  command: "dkms build -m {{ kernel_module.name }} -v {{ package_version }}"
+  args:
+    chdir: "{{ module_dir }}"
+  register: dkms_build
+  changed_when: "'already built for kernel' not in dkms_build.stdout"
+  notify: Load kernel module after build
+
+- name: "Install {{ kernel_module.name }} module using DKMS"
+  become: True
+  command: "dkms install --force -m {{ kernel_module.name }} -v {{ package_version }}"
+  args:
+    chdir: "{{ module_dir }}"
+  changed_when: "'already installed on kernel' not in dkms_install.stdout"
+  register: dkms_install
+  notify: Load kernel module after build
