@@ -1,10 +1,4 @@
 ---
-# This task is intended to be looped over with "item" being a kernel module config
-# Example:
-# item:
-#   name: amd_energy
-#   git_repo: https://github.com/amd/amd_energy.git
-
 - fail:
     msg: "You must define git_repo if you wish to build a module!"
   when: kernel_module.git_repo is not defined
@@ -20,8 +14,21 @@
 
 - name: "Clone the module repository for {{ kernel_module.name }}"
   git:
-    repo: "{{ item.git_repo }}"
+    repo: "{{ kernel_module.git_repo }}"
     dest: "{{ module_dir }}"
+    version: "{{ kernel_module.git_repo_tag | default(omit) }}"
+
+- name: Apply patches
+  ansible.posix.patch:
+    src: "{{ patch }}"
+    basedir: "{{ module_dir }}"
+    strip: 1
+  loop: "{{ kernel_module.patches }}"
+  loop_control:
+    loop_var: patch
+  when: 
+    - kernel_module.patches is defined
+    - kernel_module.patches is iterable
 
 - name: "Extract PACKAGE_VERSION of {{ kernel_module.name }} using regex"
   ansible.builtin.shell: |

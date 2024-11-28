@@ -11,10 +11,10 @@ kernel_modules:
   # What should happen: it will be built and then loaded
   - name: amd_hsmp
     git_repo: https://github.com/amd/amd_hsmp.git
+    git_repo_tag: f34b98fb70b67a7908f32d4d6da5a2ee89857b08
+    force_build: True
     patches:
-      - ./amd_energy_fix1.patch
-      - ./amd_energy_fix2.patch
-      - ./amd_energy_fix3.patch
+      - amd_hsmp_fix1.patch
 
   - name: amd_energy
     git_repo: https://github.com/amd/amd_energy.git

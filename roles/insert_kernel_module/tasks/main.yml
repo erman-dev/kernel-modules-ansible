@@ -1,14 +1,11 @@
 ---
 # This role loads one kernel_module specified in "kernel_module"
 
-# This check will look into /boot/($uname -r) and can return three states
-# 1 - it found the "kernel_opt" inside the file and it is =y (builtin and already loaded)
-# 2 - it found the "kernel_opt" inside the file and it is =m (shipped with, but not loaded)
-# 3 - not found, so we need to install it from the off-tree repo
-
 - fail:
-    msg: "You must pass 'kernel_module' variable with name to this role!"
-  when: kernel_module.name is not defined
+    msg: "You must pass 'kernel_module' variable with attribute name to this role!"
+  when: 
+    - kernel_module is not defined
+    - kernel_module.name is not defined
 
 # Sometimes we might prefer off-tree module to the module that is already
 # shipped with the kernel. When a force_build flag is set for a module, we will
