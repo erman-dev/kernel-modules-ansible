@@ -1,5 +1,0 @@
-kernel_modules:
-  # Example of a builtin module
-  - name: acpi-cpufreq
-    params: "acpi_pstate_strict=0"
-    kernel_opt: CONFIG_X86_ACPI_CPUFREQ
