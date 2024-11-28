@@ -5,6 +5,10 @@
 #   name: amd_energy
 #   git_repo: https://github.com/amd/amd_energy.git
 
+- fail:
+    msg: "You must define git_repo if you wish to build a module!"
+  when: kernel_module.git_repo is not defined
+
 - name: "Create temporary build directory for build of {{ kernel_module.name }}"
   ansible.builtin.tempfile:
     state: directory
@@ -23,9 +27,10 @@
   ansible.builtin.shell: |
     grep '^PACKAGE_VERSION=' {{ module_dir }}/dkms.conf | awk -F'=' '{print $2}';
   register: package_version_grep
+  changed_when: false
 
 - ansible.builtin.set_fact:
-    package_version: "{{ package_version_grep.stdout | default('1.0') }}"
+    package_version: "{{ package_version_grep.stdout }}"
 
 # RC 0 - ok
 # RC 1 - general error
@@ -56,3 +61,10 @@
   changed_when: "'already installed on kernel' not in dkms_install.stdout"
   register: dkms_install
   notify: Load kernel module after build
+
+- name: Load kernel module
+  become: true
+  community.general.modprobe:
+    name: "{{ kernel_module.name }}"
+    params: "{{ kernel_module.params | default(omit) }}"
+    persistent: "present"

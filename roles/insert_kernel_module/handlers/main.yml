@@ -1,6 +1,0 @@
-- name: Load kernel module after build
-  become: true
-  community.general.modprobe:
-    name: "{{ kernel_module.name }}"
-    params: "{{ kernel_module.params | default(omit) }}"
-    persistent: "present"

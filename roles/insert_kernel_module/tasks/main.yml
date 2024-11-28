@@ -6,30 +6,17 @@
 # 2 - it found the "kernel_opt" inside the file and it is =m (shipped with, but not loaded)
 # 3 - not found, so we need to install it from the off-tree repo
 
-- debug:
-    msg: "{{ ansible_facts }}"
+- fail:
+    msg: "You must pass 'kernel_module' variable with name to this role!"
+  when: kernel_module.name is not defined
 
-- name: "Detect if the module {{ kernel_module.name }} is present in kernel"
-  vars:
-    kernel_conf_file: "/boot/config-{{ ansible_facts['kernel'] }}"
-  ansible.builtin.shell: |
-    if grep -q '^{{ kernel_module.kernel_opt }}=' {{ kernel_conf_file }}; then
-      grep '^{{ kernel_module.kernel_opt }}=' {{ kernel_conf_file }} | awk -F'=' '{print $2}';
-    else
-      echo 'notfound';
-    fi
-  register: module_detection
-  changed_when: false
-
-- name: Load the kernel module
-  become: true
-  community.general.modprobe:
-    name: "{{ kernel_module.name }}"
-    params: "{{ kernel_module.params | default(omit) }}"
-    persistent: "present"
-  when: module_detection.stdout == "m"
-
+# Sometimes we might prefer off-tree module to the module that is already
+# shipped with the kernel. When a force_build flag is set for a module, we will
+# skip checking if the module in shipped with the kernel and proceed to build it
+# and load it instead.
 - include_tasks: build_module.yml
-  when: module_detection.stdout == "notfound"
+  when: kernel_module.force_build | default(False)
 
-- meta: flush_handlers
+# Otherwise do the normal load/build
+- include_tasks: load_module.yml
+  when: not kernel_module.force_build | default(False)
