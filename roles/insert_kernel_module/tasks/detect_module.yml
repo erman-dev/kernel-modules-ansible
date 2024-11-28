@@ -1,0 +1,55 @@
+---
+# First take a look into the kernel config
+# Some modules may be builtin or loadable
+- name: "Detect if the module {{ kernel_module.name }} is present in kernel config"
+  vars:
+    kernel_conf_file: "/boot/config-{{ ansible_facts['kernel'] }}"
+  ansible.builtin.shell: |
+    if grep -q '^{{ kernel_module.kernel_build_opt }}=' {{ kernel_conf_file }}; then
+      grep '^{{ kernel_module.kernel_build_opt }}=' {{ kernel_conf_file }} | awk -F'=' '{print $2}';
+    fi
+  register: kernel_config
+  changed_when: false
+  when:
+    - kernel_module.kernel_build_opt is defined
+
+# If the module was not found in the kernel config, try checking it with modinfo in case
+# it was already installed with DKMS
+- name: "Detect if the module {{ kernel_module.name }} is available for the kernel"
+  ansible.builtin.command: "modinfo {{ kernel_module.name }}"
+  register: modinfo
+  failed_when: false
+  changed_when: false
+  when:
+    - "kernel_module.kernel_build_opt is not defined or kernel_config.stdout == ''"
+
+# Decide what kind of kernel module it is
+# 1. =y was present in kernel config, so it is a builtin module
+# 2. =m was present in kernel config, so it is a loadable module that ships with kernel
+#     or module was not found in the kernel config, but found with modinfo, so it was installed already with DKMS
+# 3. module was not found in the kernel config and not found with modinfo, so it is missing
+#     or kernel_module.kernel_build_opt is not defined -> module was for sure not found as we expect this module to not be part of kernel when we didnt define its option
+# 4. None of the above, the user should examine the module manually
+- name: Use modinfo results to get the module type
+  vars:
+    kernel_config_output: "{{ kernel_config.stdout | default('') }}"
+    modinfo_output: "{{ modinfo.stdout | default('') }}"
+    modinfo_error_output: "{{ modinfo.stderr | default('') }}"
+  set_fact:
+    module_type: |-
+      {%- if 'y' in kernel_config_output -%}
+      builtin
+      {%- elif 'm' in kernel_config_output or '/lib/modules' in modinfo_output -%}
+      loadable
+      {%- elif 'not found' in modinfo_error_output or kernel_module.kernel_build_opt is not defined -%}
+      missing
+      {%- else -%}
+      error
+      {%- endif -%}
+
+- name: Raise error if we were unable to detect module_type
+  fail:
+    msg: |-
+      Examination of /boot/config-<kernel_vel> failed, or "modinfo {{ kernel_module.name }}" 
+      returned unexpected error: {{ modinfo.stderr }}
+  when: module_type == "error"

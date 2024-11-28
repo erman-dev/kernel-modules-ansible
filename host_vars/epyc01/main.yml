@@ -2,10 +2,15 @@ kernel_modules:
   # Example of a builtin module 
   # What should happen: it will not be loaded, because it already is loaded
   - name: acpi-cpufreq
+    kernel_build_opt: CONFIG_X86_ACPI_CPUFREQ
+
+  - name: amd_pstate
+    kernel_build_opt: CONFIG_X86_AMD_PSTATE
 
   # Example of a pluggable module that ships with kernel 
   # What should happen: it will be loaded
   - name: cpuid
+    kernel_build_opt: CONFIG_X86_CPUIDA
 
   # Example of modules we have to build 
   # What should happen: it will be built and then loaded
@@ -18,4 +23,3 @@ kernel_modules:
 
   - name: amd_energy
     git_repo: https://github.com/amd/amd_energy.git
-    force_build: True

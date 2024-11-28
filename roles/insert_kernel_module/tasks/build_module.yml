@@ -49,7 +49,6 @@
   failed_when: dkms_add.rc not in [0,3]
   changed_when: dkms_add.rc == 0
   register: dkms_add
-  notify: Load kernel module after build
 
 - name: "Build {{ kernel_module.name }} module using DKMS"
   become: True
@@ -58,7 +57,6 @@
     chdir: "{{ module_dir }}"
   register: dkms_build
   changed_when: "'already built for kernel' not in dkms_build.stdout"
-  notify: Load kernel module after build
 
 - name: "Install {{ kernel_module.name }} module using DKMS"
   become: True
@@ -67,11 +65,3 @@
     chdir: "{{ module_dir }}"
   changed_when: "'already installed on kernel' not in dkms_install.stdout"
   register: dkms_install
-  notify: Load kernel module after build
-
-- name: Load kernel module
-  become: true
-  community.general.modprobe:
-    name: "{{ kernel_module.name }}"
-    params: "{{ kernel_module.params | default(omit) }}"
-    persistent: "present"
