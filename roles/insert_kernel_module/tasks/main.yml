@@ -23,7 +23,7 @@
 
 - include_tasks: build_module.yml
   when:
-    - kernel_module.force_build | default(False) or module_type == "notfound"
+    - kernel_module.force_build | default(False) or module_type == "missing"
 
 # And lastly the module is loaded, but only if it is loadable or built using DKMS
 - name: Load kernel module
