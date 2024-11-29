@@ -1,0 +1,11 @@
+---
+# worker_provisioning.yml
+
+- import_playbook: check_kernel_config.yml
+
+- import_playbook: load_available_modules.yml
+
+- import_playbook: verify_tools.yml
+
+- import_playbook: build_missing_modules.yml
+

@@ -1,0 +1,54 @@
+---
+- name: Check kernel config and out-scope built-in modules
+  hosts: all
+  gather_facts: true
+  roles:
+    - common
+  tasks:
+    - name: Filter modules that have a defined name
+      ansible.builtin.set_fact:
+        modules_with_name: "{{ kernel_modules | selectattr('name', 'defined') | list }}"
+
+    - name: Exit playbook if no modules with a defined name are found
+      ansible.builtin.debug:
+        msg: "No valid kernel modules with a 'name' defined. Skipping all tasks."
+      when: modules_with_name | length == 0
+      tags: skip
+
+    - name: Gather system facts
+      ansible.builtin.setup:
+      when: modules_with_name | length > 0
+
+    - name: Check if kernel module is built into the kernel (CONFIG_X86_ and CONFIG_)
+      ansible.builtin.shell: |
+        # Check for the presence of the module in the kernel config
+        result=$(grep -E "CONFIG_X86_{{ item.name | upper | replace('_', '_') }}=y" /boot/config-$(uname -r) || echo "Not found")
+        echo "$result"
+      register: module_config
+      changed_when: false
+      loop: "{{ modules_with_name }}"
+      loop_control:
+        loop_var: item
+      when: modules_with_name | length > 0
+
+    - name: Initialize missing_modules variable
+      ansible.builtin.set_fact:
+        missing_modules: []
+      when: modules_with_name | length > 0
+
+    - name: Set fact for modules not built into the kernel
+      ansible.builtin.set_fact:
+        missing_modules: "{{ missing_modules + [item.item.name] }}"
+      when:
+        - "'Not found' in item.stdout or 'is not set' in item.stdout"
+        - modules_with_name | length > 0
+      loop: "{{ module_config.results }}"
+      no_log: true
+
+    - name: Write missing kernel modules to a JSON file for each node
+      ansible.builtin.copy:
+        content: "{{ missing_modules | to_json }}"
+        dest: "{{ managed_modules_path }}"
+        mode: '0644'
+      delegate_to: localhost
+      when: modules_with_name | length > 0
