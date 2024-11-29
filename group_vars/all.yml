@@ -9,7 +9,7 @@ kernel_modules:
   - name: cpuid
     kernel_opt: "CONFIG_X86_CPUID"
 
-  # Example of modules we have to build 
+  # Example of modules that need to be built
   # What should happen: it will be built and then loaded
   - name: amd_hsmp
     kernel_opt: "xxx" # I was not able to find hat would be the kernel opt for this module.

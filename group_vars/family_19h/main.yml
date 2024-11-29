@@ -12,7 +12,7 @@ kernel_modules:
   - name: cpuid
     kernel_build_opt: CONFIG_X86_CPUIDA
 
-  # Example of modules we have to build 
+  # Example of modules that need to be built
   # What should happen: it will be built and then loaded
   - name: amd_hsmp
     git_repo: https://github.com/amd/amd_hsmp.git
