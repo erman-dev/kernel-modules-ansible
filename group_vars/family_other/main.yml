@@ -1,2 +1,0 @@
-kernel_modules:
-  - name: cpuid
