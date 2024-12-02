@@ -1,9 +1,14 @@
 ---
 - fail:
-    msg: "You must define git_repo if you wish to build a module!"
+    msg: >-
+      The playbook attempted to build the module "{{ kernel_module.name }}" 
+      To build a module, git_repo attribute must be defined! 
+      This means that the module is missing from the kernel or you've entered 
+      invalid kernel_build_opt parameter. If you belive that this is incorrect, 
+      check your config.
   when: kernel_module.git_repo is not defined
 
-- name: "Create temporary build directory for build of {{ kernel_module.name }}"
+- name: "{{ kernel_module.name }} : Create temporary build directory for build"
   ansible.builtin.tempfile:
     state: directory
     suffix: build
@@ -12,13 +17,13 @@
 - ansible.builtin.set_fact:
     module_dir: "{{ temp_workdir.path }}/{{ kernel_module.name }}"
 
-- name: "Clone the module repository for {{ kernel_module.name }}"
+- name: "{{ kernel_module.name }} : Clone the module repository"
   git:
     repo: "{{ kernel_module.git_repo }}"
     dest: "{{ module_dir }}"
     version: "{{ kernel_module.git_repo_tag | default(omit) }}"
 
-- name: Apply patches
+- name: "{{ kernel_module.name }} : Apply patches"
   ansible.posix.patch:
     src: "{{ patch }}"
     basedir: "{{ module_dir }}"
@@ -30,7 +35,7 @@
     - kernel_module.patches is defined
     - kernel_module.patches is iterable
 
-- name: "Extract PACKAGE_VERSION of {{ kernel_module.name }} using regex"
+- name: "{{ kernel_module.name }} : Extract PACKAGE_VERSION using regex"
   ansible.builtin.shell: |
     grep '^PACKAGE_VERSION=' {{ module_dir }}/dkms.conf | awk -F'=' '{print $2}';
   register: package_version_grep
@@ -43,14 +48,14 @@
 # RC 1 - general error
 # RC 2 - folder not found
 # RC 3 - module already added
-- name: "Add {{ kernel_module.name }} module to DKMS tree"
+- name: "{{ kernel_module.name }} : Add module to DKMS tree"
   become: True
   command: "dkms add {{ module_dir }}"
   failed_when: dkms_add.rc not in [0,3]
   changed_when: dkms_add.rc == 0
   register: dkms_add
 
-- name: "Build {{ kernel_module.name }} module using DKMS"
+- name: "{{ kernel_module.name }} : Build module using DKMS"
   become: True
   command: "dkms build -m {{ kernel_module.name }} -v {{ package_version }}"
   args:
@@ -58,7 +63,7 @@
   register: dkms_build
   changed_when: "'already built for kernel' not in dkms_build.stdout"
 
-- name: "Install {{ kernel_module.name }} module using DKMS"
+- name: "{{ kernel_module.name }} : Install module using DKMS"
   become: True
   command: "dkms install --force -m {{ kernel_module.name }} -v {{ package_version }}"
   args:

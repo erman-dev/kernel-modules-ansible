@@ -1,6 +1,6 @@
 ---
 # Detect what kind of module is being loaded - builtin, loadable or missing
-- name: "Detect if the module {{ kernel_module.name }} is present in kernel config"
+- name: "{{ kernel_module.name }} : Detect if the module is present in kernel config"
   vars:
     kernel_conf_file: "/boot/config-{{ ansible_facts['kernel'] }}"
   ansible.builtin.shell: |
@@ -14,7 +14,7 @@
 
 # If the module was not found in the kernel config, try checking it with modinfo in case
 # it was already installed with DKMS
-- name: "Detect if the module {{ kernel_module.name }} is available for the kernel"
+- name: "{{ kernel_module.name }} : Get module info with modinfo"
   ansible.builtin.command: "modinfo {{ kernel_module.name }}"
   register: modinfo
   failed_when: false
@@ -29,7 +29,7 @@
 # 3. module was not found in the kernel config and not found with modinfo, so it is missing
 #     or kernel_module.kernel_build_opt is not defined -> module was for sure not found as it was expected this module to not be part of kernel when the option was not defined 
 # 4. None of the above, the user should examine the module manually
-- name: Use modinfo results to get the module type
+- name: "{{ kernel_module.name }} : Use modinfo results to get the module type"
   vars:
     kernel_config_output: "{{ kernel_config.stdout | default('') }}"
     modinfo_output: "{{ modinfo.stdout | default('') }}"
@@ -46,7 +46,7 @@
       error
       {%- endif -%}
 
-- name: Raise error if the module_type was not detected 
+- name: "{{ kernel_module.name }} : Raise error if the module_type was not detected"
   fail:
     msg: |-
       Examination of /boot/config-<kernel_vel> failed, or "modinfo {{ kernel_module.name }}" 
