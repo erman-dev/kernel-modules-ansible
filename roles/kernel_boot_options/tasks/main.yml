@@ -1,36 +1,50 @@
 ---
-# This role loads one kernel_module specified in "kernel_module"
+# This role verifies AMD settings in BIOS and possibly in grub
 
-- fail:
-    msg: "'kernel_module' variable with attribute name must be passed to this role!"
-  when:
-    - kernel_module is not defined
-    - kernel_module.name is not defined
+- name: Check amd_pstate driver setting in sysfs value and provide fix message if incorrect
+  block:
+    - name: Read amd_pstate sysfs value
+      ansible.builtin.command: cat /sys/devices/system/cpu/amd_pstate/status
+      register: sysfs_amd_pstate_output
+      changed_when: false
 
-# Detect what type of kernel module it is - builtin, loadable, or missing
-- import_tasks: detect_module.yml
+    - name: Check if amd_pstatet sysfs value is correct
+      ansible.builtin.assert:
+        that:
+          - sysfs_amd_pstate_output.stdout == "passive"
+        fail_msg: 'The driver amd_pstate setting is not set correctly. Add into /etc/default/grub: GRUB_CMDLINE_LINUX_DEFAULT="amd_pstate=passive"'
+        success_msg: "The driver amd_pstate setting is set correctly."
 
-# Sometimes it might be preffered to use the off-tree module instead of the module 
-# that is already shipped with the kernel. When a force_build flag is set for
-# a module a build_module.yml will be called instead of loading it.
-# NOTE(r-krcek): This needs testing, I am not sure if it works as-is!!
-- name: Fail if the user is trying to rebuild builtin module
-  fail:
-    msg: "You cannout force_build a kernel module that is builtin!"
-  when:
-    - module_type == "builtin"
-    - kernel_module.force_build | default(False)
+- name: Check CPU CPPC setting using /proc/cpuinfo
+  block:
+    - name: Read cppc in /proc/cpuinfo
+      ansible.builtin.shell: |
+        set -o pipefail && grep cppc /proc/cpuinfo | uniq
+      args:
+        executable: /bin/bash
+      register: cpuinfo_cppc_output
+      changed_when: false
 
-- include_tasks: build_module.yml
-  when:
-    - kernel_module.force_build | default(False) or module_type == "missing"
+    - name: Verify CPU cppc setting
+      ansible.builtin.assert:
+        that:
+          - cpuinfo_cppc_output.stdout | length > 0
+        fail_msg: "BIOS CPPC setting is not correct. Enable CPPC in BIOS."
+        success_msg: "BIOS CPPC setting is correct."
 
-# And lastly the module is loaded, but only if it is loadable or built using DKMS
-- name: Load kernel module
-  become: true
-  community.general.modprobe:
-    name: "{{ kernel_module.name }}"
-    params: "{{ kernel_module.params | default(omit) }}"
-    persistent: "present"
-  when:
-    - module_type in  ["loadable", "missing"]
+- name: Check CPU Monitor and Mwait setting using /proc/cpuinfo
+  block:
+    - name: Read mwaitx in /proc/cpuinfo
+      ansible.builtin.shell: |
+        set -o pipefail && grep mwaitx /proc/cpuinfo | uniq
+      args:
+        executable: /bin/bash
+      register: cpuinfo_mwaitx_output
+      changed_when: false
+
+    - name: Verify CPU mwaitx setting
+      ansible.builtin.assert:
+        that:
+          - cpuinfo_mwaitx_output.stdout | length > 0
+        fail_msg: "BIOS Monitor and Mwait setting is not correct. Enable Monitor and Mwait in BIOS."
+        success_msg: "BIOS Monitor and Mwait setting is correct."
