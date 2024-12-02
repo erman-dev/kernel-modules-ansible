@@ -17,9 +17,9 @@ kernel_modules:
   - name: amd_hsmp
     git_repo: https://github.com/amd/amd_hsmp.git
     git_repo_tag: f34b98fb70b67a7908f32d4d6da5a2ee89857b08
-    force_build: True
-    patches:
-      - amd_hsmp_fix1.patch
 
   - name: amd_energy
     git_repo: https://github.com/amd/amd_energy.git
+    force_build: True
+    patches:
+      - amd_energy_kernel_version.patch
