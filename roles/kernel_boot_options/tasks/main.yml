@@ -1,0 +1,36 @@
+---
+# This role loads one kernel_module specified in "kernel_module"
+
+- fail:
+    msg: "'kernel_module' variable with attribute name must be passed to this role!"
+  when:
+    - kernel_module is not defined
+    - kernel_module.name is not defined
+
+# Detect what type of kernel module it is - builtin, loadable, or missing
+- import_tasks: detect_module.yml
+
+# Sometimes it might be preffered to use the off-tree module instead of the module 
+# that is already shipped with the kernel. When a force_build flag is set for
+# a module a build_module.yml will be called instead of loading it.
+# NOTE(r-krcek): This needs testing, I am not sure if it works as-is!!
+- name: Fail if the user is trying to rebuild builtin module
+  fail:
+    msg: "You cannout force_build a kernel module that is builtin!"
+  when:
+    - module_type == "builtin"
+    - kernel_module.force_build | default(False)
+
+- include_tasks: build_module.yml
+  when:
+    - kernel_module.force_build | default(False) or module_type == "missing"
+
+# And lastly the module is loaded, but only if it is loadable or built using DKMS
+- name: Load kernel module
+  become: true
+  community.general.modprobe:
+    name: "{{ kernel_module.name }}"
+    params: "{{ kernel_module.params | default(omit) }}"
+    persistent: "present"
+  when:
+    - module_type in  ["loadable", "missing"]
