@@ -1,4 +1,0 @@
-clean_up_list: false
-managed_modules_path: "group_vars/{{ ansible_hostname }}-managed_modules.json"
-missing_modules_path: "group_vars/{{ ansible_hostname }}-missing_modules.json"
-build_dir: "/usr/local/src"
