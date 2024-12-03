@@ -35,6 +35,17 @@
     - kernel_module.patches is defined
     - kernel_module.patches is iterable
 
+- name: "{{ kernel_module.name }} : Detect dkms.conf file"
+  ansible.builtin.stat:
+    path: "{{ module_dir }}/dkms.conf"
+  register: dmks_file
+
+- fail:
+    msg: >-
+      The repository {{ kernel_module.git_repo }} is missing the dkms.conf file.
+      These plays are compatible only with kernel modules that support build with DKMS!
+  when: not dmks_file.stat.exists
+
 - name: "{{ kernel_module.name }} : Extract PACKAGE_VERSION using regex"
   ansible.builtin.shell: |
     grep '^PACKAGE_VERSION=' {{ module_dir }}/dkms.conf | awk -F'=' '{print $2}';
