@@ -1,8 +1,8 @@
 ---
 - name: Ensure the host has necessary tools
   become: true
-  package:
-    name: 
+  ansible.builtin.package:
+    name:
       - dkms
       - git
       - patch

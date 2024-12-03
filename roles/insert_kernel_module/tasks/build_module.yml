@@ -1,88 +1,96 @@
 ---
-- fail:
+- name: "Fail on missing git_repo : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.fail:
     msg: >-
-      The playbook attempted to build the module "{{ kernel_module.name }}" 
-      To build a module, git_repo attribute must be defined! 
-      This means that the module is missing from the kernel or you've entered 
-      invalid kernel_build_opt parameter. If you belive that this is incorrect, 
+      The playbook attempted to build the module "{{ insert_kernel_module_data.name }}"
+      To build a module, git_repo attribute must be defined!
+      This means that the module is missing from the kernel or you've entered
+      invalid kernel_build_opt parameter. If you belive that this is incorrect,
       check your config.
-  when: kernel_module.git_repo is not defined
+  when: insert_kernel_module_data.git_repo is not defined
 
-- name: "{{ kernel_module.name }} : Create temporary build directory for build"
+- name: "Create temporary build directory for build : {{ insert_kernel_module_data.name }}"
   ansible.builtin.tempfile:
     state: directory
     suffix: build
   register: temp_workdir
 
-- ansible.builtin.set_fact:
-    module_dir: "{{ temp_workdir.path }}/{{ kernel_module.name }}"
+- name: "Set module directory : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.set_fact:
+    module_dir: "{{ temp_workdir.path }}/{{ insert_kernel_module_data.name }}"
 
-- name: "{{ kernel_module.name }} : Clone the module repository"
-  git:
-    repo: "{{ kernel_module.git_repo }}"
+- name: "Clone the module repository : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.git:
+    repo: "{{ insert_kernel_module_data.git_repo }}"
     dest: "{{ module_dir }}"
-    version: "{{ kernel_module.git_repo_tag | default(omit) }}"
+    version: "{{ insert_kernel_module_data.git_repo_tag | default(omit) }}"
 
-- name: "{{ kernel_module.name }} : Apply patches"
+- name: "Apply patches : {{ insert_kernel_module_data.name }}"
   ansible.posix.patch:
     src: "{{ patch }}"
     basedir: "{{ module_dir }}"
     strip: 1
-  loop: "{{ kernel_module.patches }}"
+  loop: "{{ insert_kernel_module_data.patches }}"
   loop_control:
     loop_var: patch
-  when: 
-    - kernel_module.patches is defined
-    - kernel_module.patches is iterable
+  when:
+    - insert_kernel_module_data.patches is defined
+    - insert_kernel_module_data.patches is iterable
 
-- name: "{{ kernel_module.name }} : Detect dkms.conf file"
+- name: "Detect dkms.conf file : {{ insert_kernel_module_data.name }}"
   ansible.builtin.stat:
     path: "{{ module_dir }}/dkms.conf"
   register: dmks_file
 
-- fail:
+- name: "Fail on missing dkms.conf : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.fail:
     msg: >-
-      The repository {{ kernel_module.git_repo }} is missing the dkms.conf file.
+      The repository {{ insert_kernel_module_data.git_repo }} is missing the dkms.conf file.
       These plays are compatible only with kernel modules that support build with DKMS!
   when: not dmks_file.stat.exists
 
-- name: "{{ kernel_module.name }} : Extract PACKAGE_VERSION using regex"
+- name: "Extract PACKAGE_VERSION using regex : {{ insert_kernel_module_data.name }}"
   ansible.builtin.shell: |
+    set -o pipefail
     grep '^PACKAGE_VERSION=' {{ module_dir }}/dkms.conf | awk -F'=' '{print $2}';
+  args:
+    executable: /bin/bash
   register: package_version_grep
   changed_when: false
 
-- ansible.builtin.set_fact:
+- name: "Set package version : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.set_fact:
     package_version: "{{ package_version_grep.stdout }}"
 
-- block:
+- name: "Install module : {{ insert_kernel_module_data.name }}"
+  block:
     # RC 0 - ok
     # RC 1 - general error
     # RC 2 - folder not found
     # RC 3 - module already added
-    - name: "{{ kernel_module.name }} : Add module to DKMS tree"
-      become: True
+    - name: "Add module to DKMS tree : {{ insert_kernel_module_data.name }}"
+      become: true
       ansible.builtin.command: "dkms add {{ module_dir }}"
       failed_when: dkms_add.rc not in [0,3]
       changed_when: dkms_add.rc == 0
       register: dkms_add
 
-    - name: "{{ kernel_module.name }} : Build module using DKMS"
-      become: True
+    - name: "Build module using DKMS : {{ insert_kernel_module_data.name }}"
+      become: true
       ansible.builtin.command: >
-        dkms build {% if kernel_module.get('force_build', False) %}--force{% endif %}
-        -m {{ kernel_module.name }}
+        dkms build {% if insert_kernel_module_data.get('force_build', False) %}--force{% endif %}
+        -m {{ insert_kernel_module_data.name }}
         -v {{ package_version }}
       args:
         chdir: "{{ module_dir }}"
       register: dkms_build
       changed_when: "'already built for kernel' not in dkms_build.stdout"
 
-    - name: "{{ kernel_module.name }} : Install module using DKMS"
-      become: True
+    - name: "Install module using DKMS : {{ insert_kernel_module_data.name }}"
+      become: true
       ansible.builtin.command: >
-        dkms install {% if kernel_module.get('force_build', False) %}--force{% endif %}
-        -m {{ kernel_module.name }}
+        dkms install {% if insert_kernel_module_data.get('force_build', False) %}--force{% endif %}
+        -m {{ insert_kernel_module_data.name }}
         -v {{ package_version }}
       args:
         chdir: "{{ module_dir }}"
@@ -90,7 +98,7 @@
       register: dkms_install
 
   always:
-    - name: "{{ kernel_module.name }} : Cleanup temporary directory"
+    - name: "Cleanup temporary directory : {{ insert_kernel_module_data.name }}"
       ansible.builtin.file:
         path: "{{ temp_workdir.path }}"
         state: absent

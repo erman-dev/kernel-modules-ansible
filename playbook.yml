@@ -4,16 +4,19 @@
   gather_facts: true
   tasks:
     # Make sure all tools are present on the machine
-    - import_role: 
+    - name: Ensure necessary tools are present
+      ansible.builtin.import_role:
         name: ensure_tools
 
     # Loop over the role and pass the item as "kernel_module"
-    - include_role: 
+    - name: Load kernel module
+      ansible.builtin.include_role:
         name: insert_kernel_module
       loop: "{{ kernel_modules }}"
       vars:
-        kernel_module: "{{ item }}"
-    
+        insert_kernel_module_data: "{{ item }}"
+
     # TODO: Make sure the boot params are ok
-    - import_role: 
+    - name: Check kernel boot options
+      ansible.builtin.import_role:
         name: kernel_boot_options

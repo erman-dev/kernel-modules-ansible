@@ -12,7 +12,10 @@
       ansible.builtin.assert:
         that:
           - sysfs_amd_pstate_output.stdout == "passive"
-        fail_msg: 'The driver amd_pstate setting is not set correctly. Add to /etc/default/grub: GRUB_CMDLINE_LINUX_DEFAULT="amd_pstate=passive" and execute: update-grub; reboot'
+        fail_msg: >-
+          The driver amd_pstate setting is not set correctly.
+          Add to /etc/default/grub: GRUB_CMDLINE_LINUX_DEFAULT="amd_pstate=passive"
+          and execute: update-grub; reboot'
         success_msg: "The driver amd_pstate setting is set correctly."
 
 - name: Check CPU CPPC setting using /proc/cpuinfo

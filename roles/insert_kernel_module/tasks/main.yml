@@ -1,39 +1,41 @@
 ---
-# This role loads one kernel_module specified in "kernel_module"
+# This role loads one kernel module specified in "insert_kernel_module_data"
 
-- fail:
+- name: "Fail on incorrect input : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.fail:
     msg: >-
-      To run this role, you need to pass kernel_module object with attribute
+      To run this role, you need to pass insert_kernel_module_data object with attribute
       "name" defined.
-  when: kernel_module.name is not defined
+  when: insert_kernel_module_data.name is not defined
 
 # Detect what type of kernel module it is - builtin, loadable, or missing
-- import_tasks: detect_module.yml
+- name: "Import detect module task : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.import_tasks: detect_module.yml
 
-# Sometimes it might be preffered to use the off-tree module instead of the module 
-# that is already shipped with the kernel. When a force_build flag is set for 
-# a module a build_module.yml will be called instead of loading it. 
+# Sometimes it might be preffered to use the off-tree module instead of the module
+# that is already shipped with the kernel. When a force_build flag is set for
+# a module a build_module.yml will be called instead of loading it.
 # NOTE(r-krcek): This needs testing, I am not sure if it works as-is!!
-- name: "{{ kernel_module.name }} : Fail if the user is trying to rebuild builtin module"
-  fail:
+- name: "Fail if the user is trying to rebuild builtin module : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.fail:
     msg: >-
       Detected module_type is BUILTIN, but the force_build parameter was set to True.
       You cannot force build of a builtin module! Please check you kernel module configuration.
   when:
     - module_type == "builtin"
-    - kernel_module.force_build | default(False)
+    - insert_kernel_module_data.force_build | default(False)
 
-- name: "{{ kernel_module.name }} : Build module"
-  include_tasks: build_module.yml
+- name: "Build module : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.include_tasks: build_module.yml
   when:
-    - kernel_module.force_build | default(False) or module_type == "missing"
+    - insert_kernel_module_data.force_build | default(False) or module_type == "missing"
 
 # And lastly the module is loaded, but only if it is loadable or built using DKMS
-- name: "{{ kernel_module.name }} : Load kernel module"
+- name: "Load kernel module : {{ insert_kernel_module_data.name }}"
   become: true
   community.general.modprobe:
-    name: "{{ kernel_module.name }}"
-    params: "{{ kernel_module.params | default(omit) }}"
+    name: "{{ insert_kernel_module_data.name }}"
+    params: "{{ insert_kernel_module_data.params | default(omit) }}"
     persistent: "present"
   when:
     - module_type in  ["loadable", "missing"]
