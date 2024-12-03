@@ -44,40 +44,42 @@
 - ansible.builtin.set_fact:
     package_version: "{{ package_version_grep.stdout }}"
 
-# RC 0 - ok
-# RC 1 - general error
-# RC 2 - folder not found
-# RC 3 - module already added
-- name: "{{ kernel_module.name }} : Add module to DKMS tree"
-  become: True
-  ansible.builtin.command: "dkms add {{ module_dir }}"
-  failed_when: dkms_add.rc not in [0,3]
-  changed_when: dkms_add.rc == 0
-  register: dkms_add
+- block:
+    # RC 0 - ok
+    # RC 1 - general error
+    # RC 2 - folder not found
+    # RC 3 - module already added
+    - name: "{{ kernel_module.name }} : Add module to DKMS tree"
+      become: True
+      ansible.builtin.command: "dkms add {{ module_dir }}"
+      failed_when: dkms_add.rc not in [0,3]
+      changed_when: dkms_add.rc == 0
+      register: dkms_add
 
-- name: "{{ kernel_module.name }} : Build module using DKMS"
-  become: True
-  ansible.builtin.command: >
-    dkms build {% if kernel_module.force_build %}--force{% endif %}
-    -m {{ kernel_module.name }}
-    -v {{ package_version }}
-  args:
-    chdir: "{{ module_dir }}"
-  register: dkms_build
-  changed_when: "'already built for kernel' not in dkms_build.stdout"
+    - name: "{{ kernel_module.name }} : Build module using DKMS"
+      become: True
+      ansible.builtin.command: >
+        dkms build {% if kernel_module.get('force_build', False) %}--force{% endif %}
+        -m {{ kernel_module.name }}
+        -v {{ package_version }}
+      args:
+        chdir: "{{ module_dir }}"
+      register: dkms_build
+      changed_when: "'already built for kernel' not in dkms_build.stdout"
 
-- name: "{{ kernel_module.name }} : Install module using DKMS"
-  become: True
-  ansible.builtin.command: >
-    dkms install {% if kernel_module.force_build %}--force{% endif %}
-    -m {{ kernel_module.name }}
-    -v {{ package_version }}
-  args:
-    chdir: "{{ module_dir }}"
-  changed_when: "'already installed on kernel' not in dkms_install.stdout"
-  register: dkms_install
+    - name: "{{ kernel_module.name }} : Install module using DKMS"
+      become: True
+      ansible.builtin.command: >
+        dkms install {% if kernel_module.get('force_build', False) %}--force{% endif %}
+        -m {{ kernel_module.name }}
+        -v {{ package_version }}
+      args:
+        chdir: "{{ module_dir }}"
+      changed_when: "'already installed on kernel' not in dkms_install.stdout"
+      register: dkms_install
 
-- name: "{{ kernel_module.name }} : Cleanup temporary directory"
-  ansible.builtin.file:
-    path: "{{ temp_workdir.path }}"
-    state: absent
+  always:
+    - name: "{{ kernel_module.name }} : Cleanup temporary directory"
+      ansible.builtin.file:
+        path: "{{ temp_workdir.path }}"
+        state: absent
