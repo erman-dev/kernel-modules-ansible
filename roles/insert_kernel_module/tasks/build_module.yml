@@ -50,14 +50,17 @@
 # RC 3 - module already added
 - name: "{{ kernel_module.name }} : Add module to DKMS tree"
   become: True
-  command: "dkms add {{ module_dir }}"
+  ansible.builtin.command: "dkms add {{ module_dir }}"
   failed_when: dkms_add.rc not in [0,3]
   changed_when: dkms_add.rc == 0
   register: dkms_add
 
 - name: "{{ kernel_module.name }} : Build module using DKMS"
   become: True
-  command: "dkms build -m {{ kernel_module.name }} -v {{ package_version }}"
+  ansible.builtin.command: >
+    dkms build {% if kernel_module.force_build %}--force{% endif %}
+    -m {{ kernel_module.name }}
+    -v {{ package_version }}
   args:
     chdir: "{{ module_dir }}"
   register: dkms_build
@@ -65,7 +68,10 @@
 
 - name: "{{ kernel_module.name }} : Install module using DKMS"
   become: True
-  command: "dkms install --force -m {{ kernel_module.name }} -v {{ package_version }}"
+  ansible.builtin.command: >
+    dkms install {% if kernel_module.force_build %}--force{% endif %}
+    -m {{ kernel_module.name }}
+    -v {{ package_version }}
   args:
     chdir: "{{ module_dir }}"
   changed_when: "'already installed on kernel' not in dkms_install.stdout"

@@ -37,12 +37,12 @@
   set_fact:
     module_type: |-
       {%- if 'y' in kernel_config_output -%}
-      builtin
+        builtin
       {%- elif 'm' in kernel_config_output or '/lib/modules' in modinfo_output -%}
-      loadable
+        loadable
       {%- elif 'not found' in modinfo_error_output or kernel_module.kernel_build_opt is not defined -%}
-      missing
-      {%- else -%}
+        missing
+        {%- else -%}
       error
       {%- endif -%}
 
