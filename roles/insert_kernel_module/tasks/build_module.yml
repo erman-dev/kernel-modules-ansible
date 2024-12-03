@@ -76,3 +76,8 @@
     chdir: "{{ module_dir }}"
   changed_when: "'already installed on kernel' not in dkms_install.stdout"
   register: dkms_install
+
+- name: "{{ kernel_module.name }} : Cleanup temporary directory"
+  ansible.builtin.file:
+    path: "{{ temp_workdir.path }}"
+    state: absent
