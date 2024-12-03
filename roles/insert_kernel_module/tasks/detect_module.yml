@@ -49,6 +49,9 @@
 - name: "{{ kernel_module.name }} : Raise error if the module_type was not detected"
   fail:
     msg: |-
-      Examination of /boot/config-<kernel_vel> failed, or "modinfo {{ kernel_module.name }}" 
-      returned unexpected error: {{ modinfo.stderr }}
+      The play was unable to determine the type of the module (builtin, loadable, missing).
+      This is most likely due kernel_build_opt missing from /boot/config or problem with modinfo.
+      Please check your kernel_module config. Your current config is:
+
+      {{ kernel_module | to_nice_yaml }}      
   when: module_type == "error"
