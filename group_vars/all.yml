@@ -1,27 +1,27 @@
 kernel_modules:
-  # Example of a builtin module
-  # What should happen: it will not be loaded, because it already is loaded
-  - name: acpi-cpufreq
-    kernel_build_opt: CONFIG_X86_ACPI_CPUFREQ
-    cpu_constraints: null
+  # # Example of a builtin module
+  # # What should happen: it will not be loaded, because it already is loaded
+  # - name: acpi-cpufreq
+  #   kernel_build_opt: CONFIG_X86_ACPI_CPUFREQ
+  #   cpu_constraints: null
 
-  - name: amd_pstate
-    kernel_build_opt: CONFIG_X86_AMD_PSTATE
-    cpu_constraints: null
+  # - name: amd_pstate
+  #   kernel_build_opt: CONFIG_X86_AMD_PSTATE
+  #   cpu_constraints: null
 
 
-  # Example of a pluggable module that ships with kernel
-  # What should happen: it will be loaded
-  - name: cpuid
-    kernel_build_opt: CONFIG_X86_CPUID
-    cpu_constraints: null
+  # # Example of a pluggable module that ships with kernel
+  # # What should happen: it will be loaded
+  # - name: cpuid
+  #   kernel_build_opt: CONFIG_X86_CPUID
+  #   cpu_constraints: null
 
-  # Example of modules that need to be built
-  # What should happen: it will be built and then loaded
-  - name: amd_hsmp
-    git_repo: https://github.com/amd/amd_hsmp.git
-    git_repo_tag: f34b98fb70b67a7908f32d4d6da5a2ee89857b08
-    cpu_constraints: null
+  # # Example of modules that need to be built
+  # # What should happen: it will be built and then loaded
+  # - name: amd_hsmp
+  #   git_repo: https://github.com/amd/amd_hsmp.git
+  #   git_repo_tag: f34b98fb70b67a7908f32d4d6da5a2ee89857b08
+  #   cpu_constraints: null
 
   - name: amd_energy
     git_repo: https://github.com/amd/amd_energy.git
