@@ -9,8 +9,22 @@
   when: insert_kernel_module_data.name is not defined
 
 # Detect what type of kernel module it is - builtin, loadable, or missing
-- name: "Import detect module task : {{ insert_kernel_module_data.name }}"
+- name: "Import tasks to detect module type : {{ insert_kernel_module_data.name }}"
   ansible.builtin.import_tasks: detect_module.yml
+
+# Detect CPU information like model and family
+- name: "Import tasks that retrieve CPU info : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.import_tasks: cpu_info.yml
+
+- name: "Compare the module constraints to host info"
+  ansible.builtin.set_fact:
+    insert_kernel_module_constraints_fulfilled: |-
+      {%- if insert_kernel_module_data.cpu_constraints -%}
+        {{ insert_kernel_module_cpu_family in insert_kernel_module_data.cpu_constraints.family and
+           insert_kernel_module_cpu_model in insert_kernel_module_data.cpu_constraints.model }}
+      {%- else -%}
+        True
+      {%- endif -%}
 
 # Sometimes it might be preffered to use the off-tree module instead of the module
 # that is already shipped with the kernel. When a force_build flag is set for
@@ -25,17 +39,20 @@
     - module_type == "builtin"
     - insert_kernel_module_data.force_build | default(False)
 
-- name: "Build module : {{ insert_kernel_module_data.name }}"
-  ansible.builtin.include_tasks: build_module.yml
-  when:
-    - insert_kernel_module_data.force_build | default(False) or module_type == "missing"
+- name: Build and load the module
+  when: insert_kernel_module_constraints_fulfilled
+  block:
+    - name: "Build module : {{ insert_kernel_module_data.name }}"
+      ansible.builtin.include_tasks: build_module.yml
+      when:
+        - insert_kernel_module_data.force_build | default(False) or module_type == "missing"
 
-# And lastly the module is loaded, but only if it is loadable or built using DKMS
-- name: "Load kernel module : {{ insert_kernel_module_data.name }}"
-  become: true
-  community.general.modprobe:
-    name: "{{ insert_kernel_module_data.name }}"
-    params: "{{ insert_kernel_module_data.params | default(omit) }}"
-    persistent: "present"
-  when:
-    - module_type in  ["loadable", "missing"]
+    # And lastly the module is loaded, but only if it is loadable or built using DKMS
+    - name: "Load kernel module : {{ insert_kernel_module_data.name }}"
+      become: true
+      community.general.modprobe:
+        name: "{{ insert_kernel_module_data.name }}"
+        params: "{{ insert_kernel_module_data.params | default(omit) }}"
+        persistent: "present"
+      when:
+        - module_type in  ["loadable", "missing"]
