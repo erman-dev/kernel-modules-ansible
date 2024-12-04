@@ -16,6 +16,9 @@
 - name: "Import tasks that retrieve CPU info : {{ insert_kernel_module_data.name }}"
   ansible.builtin.import_tasks: cpu_info.yml
 
+# Certain kernel modules can have contraints that will make sure their are installed
+# only to hosts with CPUs with given family and model. If the module has no contraints
+# then it will be installed to all hosts.
 - name: "Compare the module constraints to host info"
   ansible.builtin.set_fact:
     insert_kernel_module_constraints_fulfilled: |-

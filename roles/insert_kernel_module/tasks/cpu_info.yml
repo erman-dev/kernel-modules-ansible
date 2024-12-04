@@ -4,7 +4,7 @@
   register: procinfo
   changed_when: false
 
-- name: "Extract attributes from procinfo"
+- name: "Extract attributes from procinfo : {{ insert_kernel_module_data.name }}"
   ansible.builtin.set_fact:
     insert_kernel_module_cpu_family: "{{ procinfo.stdout | regex_search('cpu family\\s+:\\s+(\\d+)', '\\1') | first }}"
     insert_kernel_module_cpu_model: "{{ procinfo.stdout | regex_search('model\\s+:\\s+(\\d+)', '\\1') | first }}"
