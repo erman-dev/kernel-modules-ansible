@@ -12,10 +12,6 @@
 - name: "Import tasks to detect module type : {{ insert_kernel_module_data.name }}"
   ansible.builtin.import_tasks: detect_module.yml
 
-# Detect CPU information like model and family
-- name: "Import tasks that retrieve CPU info : {{ insert_kernel_module_data.name }}"
-  ansible.builtin.import_tasks: cpu_info.yml
-
 # Sometimes it might be preffered to use the off-tree module instead of the module
 # that is already shipped with the kernel. When a force_build flag is set for
 # a module a build_module.yml will be called instead of loading it.
