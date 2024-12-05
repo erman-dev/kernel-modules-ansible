@@ -1,7 +1,15 @@
 ---
+- name: Install additional packages for EL systems
+  become: true
+  ansible.builtin.package:
+    name:
+      - epel-release
+  when: ansible_facts["os_family"] == "RedHat"
+
 - name: Ensure the host has necessary tools
   become: true
   ansible.builtin.package:
+    update_cache: true
     name:
       - dkms
       - git
