@@ -16,19 +16,6 @@
 - name: "Import tasks that retrieve CPU info : {{ insert_kernel_module_data.name }}"
   ansible.builtin.import_tasks: cpu_info.yml
 
-# Certain kernel modules can have contraints that will make sure their are installed
-# only to hosts with CPUs with given family and model. If the module has no contraints
-# then it will be installed to all hosts.
-- name: "Compare the module constraints to host info"
-  ansible.builtin.set_fact:
-    insert_kernel_module_constraints_fulfilled: |-
-      {%- if insert_kernel_module_data.cpu_constraints -%}
-        {{ insert_kernel_module_cpu_family in insert_kernel_module_data.cpu_constraints.family and
-           insert_kernel_module_cpu_model in insert_kernel_module_data.cpu_constraints.model }}
-      {%- else -%}
-        True
-      {%- endif -%}
-
 # Sometimes it might be preffered to use the off-tree module instead of the module
 # that is already shipped with the kernel. When a force_build flag is set for
 # a module a build_module.yml will be called instead of loading it.
@@ -43,7 +30,7 @@
     - insert_kernel_module_data.force_build | default(False)
 
 - name: Build and load the module
-  when: insert_kernel_module_constraints_fulfilled
+  when: insert_kernel_module_data | check_cpu_constraints | bool
   block:
     - name: "Build module : {{ insert_kernel_module_data.name }}"
       ansible.builtin.include_tasks: build_module.yml

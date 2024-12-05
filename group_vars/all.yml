@@ -26,12 +26,31 @@ kernel_modules:
   - name: amd_energy
     git_repo: https://github.com/amd/amd_energy.git
     force_build: true
-    # Example values from Xeon CPU
     cpu_constraints:
-      family:
-        - "6"
-      model:
-        - "61"
-        - "135"
+      cpu_inclusions:
+        - family: 0x19
+          model:
+            - range: 
+                start: 0x00
+                end: 0x0F
+            - range:
+                start: 0x30
+                end: 0x3F
+        - family: 0x19
+          model:
+            - range:
+                start: 0x10
+                end: 0x1F
+            - range:
+                start: 0xA0
+                end: 0xAF
+            - range:
+                start: 0x90
+                end: 0x9F
+        - family: 0x1A
+          model:
+            - range:
+                start: 0x00
+                end: 0x1F
     patches:
       - amd_energy_kernel_version.patch
