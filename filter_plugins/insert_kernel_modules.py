@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from ansible.errors import AnsibleFilterError
 
+
 def is_in_range(value, start, end):
     return start <= value <= end
 
@@ -21,6 +22,11 @@ def match_single_constraint(value, constraint):
                 )
             if is_in_range(value, range.get("start", 0), range.get("end", 255)):
                 return True
+
+    else:
+        raise AnsibleFilterError(
+            "Constraints needs to be int or list of ranges!"
+        )
 
     return False
 
@@ -53,8 +59,9 @@ def check_cpu_constraints(kernel_module, cpu_family, cpu_model):
     try:
         cpu_family = int(cpu_family)
         cpu_model = int(cpu_model)
-    except ValueError:
-        raise AnsibleFilterError("Input CPU family and model need to integers!")
+    except (ValueError, TypeError):
+        raise AnsibleFilterError(
+            "Input CPU family and model must be integers!")
 
     constraint_match = match_cpu_constraints(
         cpu_family, cpu_model, checks.get("cpu_inclusions", list()))

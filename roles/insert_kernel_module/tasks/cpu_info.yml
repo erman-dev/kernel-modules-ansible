@@ -1,20 +1,24 @@
 ---
-- name: "Get CPU info from /proc/cpuinfo : {{ insert_kernel_module_data.name }}"
+- name: "Get CPU data from /proc/cpuinfo : {{ insert_kernel_module_data.name }}"
   ansible.builtin.command: "cat /proc/cpuinfo"
   register: procinfo
   changed_when: false
 
-- name: "Extract attributes from procinfo : {{ insert_kernel_module_data.name }}"
+- name: "Extract attributes from /proc/cpuinfo : {{ insert_kernel_module_data.name }}"
+  vars:
+    cpuinfo_family: "{{ procinfo.stdout | regex_search('cpu family\\s+:\\s+(\\d+)', '\\1') }}"
+    cpuinfo_model: "{{ procinfo.stdout | regex_search('model\\s+:\\s+(\\d+)', '\\1') }}"
   ansible.builtin.set_fact:
-    insert_kernel_module_cpu_family: "{{ procinfo.stdout | regex_search('cpu family\\s+:\\s+(\\d+)', '\\1') | first }}"
-    insert_kernel_module_cpu_model: "{{ procinfo.stdout | regex_search('model\\s+:\\s+(\\d+)', '\\1') | first }}"
+    insert_kernel_module_cpu_family: "{{ cpuinfo_family[0] if cpuinfo_family else -1 | int }}"
+    insert_kernel_module_cpu_model: "{{ cpuinfo_model[0] if cpuinfo_model else -1 | int }}"
   when: procinfo.stdout is defined
 
 - name: "Assert that all required information was gathered : {{ insert_kernel_module_data.name }}"
   ansible.builtin.assert:
     that:
-      - insert_kernel_module_cpu_family != ""
-      - insert_kernel_module_cpu_model != ""
+      - insert_kernel_module_cpu_family != "-1"
+      - insert_kernel_module_cpu_model != "-1"
     fail_msg: |
       The playbook was unable to gather all CPU information.
-      Please inspect /proc/cpuinfo and the logs for any errors.
+      Please inspect the result of the previous two tasks, they were supposed
+      to extract CPU model and family from /proc/cpuinfo and they seem to have failed!
