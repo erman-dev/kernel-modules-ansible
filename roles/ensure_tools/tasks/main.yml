@@ -14,4 +14,3 @@
       - dkms
       - git
       - patch
-      - python3-cpuinfo

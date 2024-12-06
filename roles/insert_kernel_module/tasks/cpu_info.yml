@@ -1,0 +1,20 @@
+---
+- name: "Get CPU info from /proc/cpuinfo : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.command: "cat /proc/cpuinfo"
+  register: procinfo
+  changed_when: false
+
+- name: "Extract attributes from procinfo : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.set_fact:
+    insert_kernel_module_cpu_family: "{{ procinfo.stdout | regex_search('cpu family\\s+:\\s+(\\d+)', '\\1') | first }}"
+    insert_kernel_module_cpu_model: "{{ procinfo.stdout | regex_search('model\\s+:\\s+(\\d+)', '\\1') | first }}"
+  when: procinfo.stdout is defined
+
+- name: "Assert that all required information was gathered : {{ insert_kernel_module_data.name }}"
+  ansible.builtin.assert:
+    that:
+      - insert_kernel_module_cpu_family != ""
+      - insert_kernel_module_cpu_model != ""
+    fail_msg: |
+      The playbook was unable to gather all CPU information.
+      Please inspect /proc/cpuinfo and the logs for any errors.

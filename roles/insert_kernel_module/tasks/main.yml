@@ -8,37 +8,12 @@
       "name" defined.
   when: insert_kernel_module_data.name is not defined
 
-# Detect what type of kernel module it is - builtin, loadable, or missing
-- name: "Import tasks to detect module type : {{ insert_kernel_module_data.name }}"
-  ansible.builtin.import_tasks: detect_module.yml
+- name: "Import CPU info tasks"
+  ansible.builtin.import_tasks: cpu_info.yml
 
-# Sometimes it might be preffered to use the off-tree module instead of the module
-# that is already shipped with the kernel. When a force_build flag is set for
-# a module a build_module.yml will be called instead of loading it.
-# NOTE(r-krcek): This needs testing, I am not sure if it works as-is!!
-- name: "Fail if the user is trying to rebuild builtin module : {{ insert_kernel_module_data.name }}"
-  ansible.builtin.fail:
-    msg: >-
-      Detected module_type is BUILTIN, but the force_build parameter was set to True.
-      You cannot force build of a builtin module! Please check you kernel module configuration.
-  when:
-    - module_type == "builtin"
-    - insert_kernel_module_data.force_build | default(False)
-
-- name: Build and load the module
-  when: insert_kernel_module_data | check_cpu_constraints | bool
-  block:
-    - name: "Build module : {{ insert_kernel_module_data.name }}"
-      ansible.builtin.include_tasks: build_module.yml
-      when:
-        - insert_kernel_module_data.force_build | default(False) or module_type == "missing"
-
-    # And lastly the module is loaded, but only if it is loadable or built using DKMS
-    - name: "Load kernel module : {{ insert_kernel_module_data.name }}"
-      become: true
-      community.general.modprobe:
-        name: "{{ insert_kernel_module_data.name }}"
-        params: "{{ insert_kernel_module_data.params | default(omit) }}"
-        persistent: "present"
-      when:
-        - module_type in  ["loadable", "missing"]
+- name: "Import insert module tasks"
+  ansible.builtin.include_tasks: insert_module.yml
+  when: |
+    insert_kernel_module_data |
+    check_cpu_constraints(insert_kernel_module_cpu_family, insert_kernel_module_cpu_model) |
+    bool
