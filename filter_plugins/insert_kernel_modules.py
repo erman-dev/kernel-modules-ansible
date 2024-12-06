@@ -20,7 +20,7 @@ def match_single_constraint(value, constraint):
                 raise AnsibleFilterError(
                     "Constraints needs to be int or list of ranges!"
                 )
-            if is_in_range(value, range.get("start", 0), range.get("end", 255)):
+            if is_in_range(value, range.get("start", float("-inf")), range.get("end", float("inf"))):
                 return True
 
     else:
