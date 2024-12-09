@@ -1,7 +1,7 @@
 ---
 # This role loads one kernel module specified in "insert_kernel_module_data"
 
-- name: "Fail on incorrect input : {{ insert_kernel_module_data.name }}"
+- name: "Fail on incorrect input"
   ansible.builtin.fail:
     msg: >-
       To run this role, you need to pass insert_kernel_module_data object with attribute
