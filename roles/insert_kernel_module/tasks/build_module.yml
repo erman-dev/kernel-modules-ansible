@@ -89,12 +89,12 @@
     - name: "Install module using DKMS : {{ insert_kernel_module_data.name }}"
       become: true
       ansible.builtin.command: >
-        dkms install {% if insert_kernel_module_data.get('force_build', False) %}--force{% endif %}
+        dkms install --force
         -m {{ insert_kernel_module_data.name }}
         -v {{ package_version }}
       args:
         chdir: "{{ module_dir }}"
-      changed_when: "'already installed on kernel' not in dkms_install.stdout"
+      changed_when: "'Installation' in dkms_install.stdout"
       register: dkms_install
 
   always:

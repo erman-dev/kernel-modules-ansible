@@ -11,9 +11,11 @@ kernel_modules:
     kernel_build_opt: CONFIG_X86_MSR
 
   # Example of a pluggable module that ships with kernel
-  # What should happen: it will be loaded
+  # What should happen: it will be built from source and loaded
   - name: cpuid
     kernel_build_opt: CONFIG_X86_CPUID
+    git_repo: https://github.com/erman-dev/cpuid-dkms.git
+    force_build: True
 
   # Example of modules that need to be built
   # What should happen: it will be built and then loaded

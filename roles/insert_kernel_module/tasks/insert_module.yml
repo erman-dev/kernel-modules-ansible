@@ -5,7 +5,6 @@
 # Sometimes it might be preffered to use the off-tree module instead of the module
 # that is already shipped with the kernel. When a force_build flag is set for
 # a module a build_module.yml will be called instead of loading it.
-# NOTE(r-krcek): This needs testing, I am not sure if it works as-is!!
 - name: "Fail if the user is trying to rebuild builtin module : {{ insert_kernel_module_data.name }}"
   ansible.builtin.fail:
     msg: >-
